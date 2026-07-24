@@ -5,7 +5,21 @@ library(ggplot2)
 
 set.seed(888)
 
-data <- read.csv("data/campaign_sample.csv")
+private_campaign_path <- "data/private/data_amazon.csv"
+
+if (file.exists(private_campaign_path)) {
+  raw_campaign_data <- read.csv(private_campaign_path)
+  data <- raw_campaign_data %>%
+    transmute(
+      customer_id = user_id,
+      recency = last,
+      frequency = home + sports + clothes + health + books + digital + toys,
+      monetary_value = electronics + nonelectronics,
+      subscribe = ifelse(subscribe == "yes", 1, 0)
+    )
+} else {
+  data <- read.csv("data/campaign_sample.csv")
+}
 
 offer_cost <- 2.00
 profit_per_subscription <- 35.00
@@ -35,11 +49,13 @@ train_index <- sample(seq_len(nrow(data)), size = floor(0.7 * nrow(data)))
 data_training <- data[train_index, ]
 data_test <- data[-train_index, ]
 
+minsplit_value <- ifelse(nrow(data_training) < 100, 4, 30)
+
 tree_model <- rpart(
   subscribe ~ recency + frequency + monetary_value,
   data = data_training,
   method = "class",
-  control = rpart.control(cp = 0.001, minsplit = 4)
+  control = rpart.control(cp = 0.001, minsplit = minsplit_value)
 )
 
 tree_probability <- predict(tree_model, data_test, type = "prob")[, "1"]
@@ -54,7 +70,7 @@ tree_roi <- calculate_roi(
 forest_model <- ranger(
   subscribe ~ recency + frequency + monetary_value,
   data = transform(data_training, subscribe = factor(subscribe)),
-  num.trees = 500,
+  num.trees = 5000,
   probability = TRUE,
   seed = 888
 )

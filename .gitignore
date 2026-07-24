@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 Rplots.pdf
+data/private/
 outputs/*.csv
 outputs/*.png
 outputs/*.pdf
